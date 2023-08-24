@@ -22,6 +22,7 @@ from ..dap_access_api import DAPAccessIntf
 from .hidapi_backend import HidApiUSB
 from .pyusb_backend import PyUSB
 from .pyusb_v2_backend import PyUSBv2
+from .pyusb_ls_backend import PyUSBLS
 from .pywinusb_backend import PyWinUSB
 
 LOG = logging.getLogger(__name__)
@@ -30,6 +31,7 @@ INTERFACE = {
              'hidapiusb': HidApiUSB,
              'pyusb': PyUSB,
              'pyusb_v2': PyUSBv2,
+             'pyusb_ls': PyUSBLS,
              'pywinusb': PyWinUSB,
             }
 
@@ -64,3 +66,4 @@ if not USB_BACKEND:
         raise DAPAccessIntf.DeviceError("No USB backend found")
 
 USB_BACKEND_V2 = "pyusb_v2"
+USB_BACKEND_LS = "pyusb_ls"

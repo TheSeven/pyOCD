@@ -25,7 +25,7 @@ from typing import (Any, Dict, Optional, Tuple, Union)
 from .dap_settings import DAPSettings
 from .dap_access_api import DAPAccessIntf
 from .cmsis_dap_core import CMSISDAPProtocol
-from .interface import (INTERFACE, USB_BACKEND, USB_BACKEND_V2)
+from .interface import (INTERFACE, USB_BACKEND, USB_BACKEND_V2, USB_BACKEND_LS)
 from .interface.common import ARM_DAPLINK_ID
 from .cmsis_dap_core import (
     Command,
@@ -73,21 +73,21 @@ def _get_interfaces():
     # Get CMSIS-DAPv2 interfaces.
     v2_interfaces = INTERFACE[USB_BACKEND_V2].get_all_connected_interfaces()
 
-    # Prefer v2 over v1 if a device provides both, unless the 'cmsis_dap.prefer_v1' option is set.
+    # Get CMSIS-DAP Low Speed interfaces.
+    ls_interfaces = INTERFACE[USB_BACKEND_LS].get_all_connected_interfaces()
+
+    # Prefer v2 over v1/LS if a device provides both, unless the 'cmsis_dap.prefer_v1' option is set.
     prefer_v1 = session.Session.get_current().options.get('cmsis_dap.prefer_v1')
     if prefer_v1:
-        devices_in_both = [v2 for v2 in v2_interfaces for v1 in v1_interfaces
-                            if _get_unique_id(v1) == _get_unique_id(v2)]
-        for dev in devices_in_both:
-            v2_interfaces.remove(dev)
+        for dev in [v2 for v2 in v2_interfaces for v1 in v1_interfaces if _get_unique_id(v1) == _get_unique_id(v2)]: v2_interfaces.remove(dev)
+        for dev in [ls for ls in ls_interfaces for v1 in v1_interfaces if _get_unique_id(v1) == _get_unique_id(ls)]: ls_interfaces.remove(dev)
     else:
-        devices_in_both = [v1 for v1 in v1_interfaces for v2 in v2_interfaces
-                            if _get_unique_id(v1) == _get_unique_id(v2)]
-        for dev in devices_in_both:
-            v1_interfaces.remove(dev)
+        for dev in [v1 for v1 in v1_interfaces for v2 in v2_interfaces if _get_unique_id(v1) == _get_unique_id(v2)]: v1_interfaces.remove(dev)
+        for dev in [v1 for v1 in v1_interfaces for ls in ls_interfaces if _get_unique_id(v1) == _get_unique_id(ls)]: v1_interfaces.remove(dev)
+    for dev in [ls for ls in ls_interfaces for v2 in v2_interfaces if _get_unique_id(ls) == _get_unique_id(v2)]: ls_interfaces.remove(dev)
 
     # Return the combined list.
-    return v1_interfaces + v2_interfaces
+    return v1_interfaces + v2_interfaces + ls_interfaces
 
 
 def _get_unique_id(interface):
