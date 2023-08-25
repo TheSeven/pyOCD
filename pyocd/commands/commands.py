@@ -925,7 +925,7 @@ class EraseCommand(CommandBase):
             eraser = FlashEraser(self.context.session, FlashEraser.Mode.CHIP)
             eraser.erase()
         else:
-            eraser = FlashEraser(self.context.session, FlashEraser.Mode.SECTOR)
+            addrs = []
             while self.count:
                 # Look up the flash region so we can get the page size.
                 region = self.context.session.target.memory_map.get_region_for_address(self.addr)
@@ -935,13 +935,13 @@ class EraseCommand(CommandBase):
                 if not region.is_flash:
                     self.context.writei("address 0x%08x is not in flash", self.addr)
                     break
-
-                # Erase this page.
-                eraser.erase([self.addr])
-
+                addrs.append(self.addr)
                 # Next page.
                 self.count -= 1
                 self.addr += region.blocksize
+            # Erase this pages.
+            eraser = FlashEraser(self.context.session, FlashEraser.Mode.SECTOR)
+            eraser.erase(addrs)
 
 class UnlockCommand(CommandBase):
     INFO = {

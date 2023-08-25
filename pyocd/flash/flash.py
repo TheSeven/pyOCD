@@ -361,17 +361,27 @@ class Flash:
         elif result != 0:
             raise FlashEraseFailure('flash erase all failure', result_code=result)
 
-    def erase_sector(self, address):
+    def erase_sector(self, address, size=None):
         """@brief Erase one sector.
 
         @exception FlashEraseFailure
         """
         assert self._active_operation == self.Operation.ERASE
+        if size is None: size = self.get_sector_info(address).size
+        end = address + size
 
         # update core register to execute the erase_sector subroutine
-        TRACE.debug("call erase_sector(%x)", address)
-        result = self._call_function_and_wait(self.flash_algo['pc_erase_sector'], address,
-                timeout=self.target.session.options.get('flash.timeout.erase_sector'))
+        if self._is_api_valid('pc_erase_multi'):
+            TRACE.debug("call erase_multi(%x, %x)", address, size)
+            result = self._call_function_and_wait(self.flash_algo['pc_erase_multi'], address, size,
+                    timeout=self.target.session.options.get('flash.timeout.erase_all'))
+        else:
+            while address < end:
+                TRACE.debug("call erase_sector(%x)", address)
+                result = self._call_function_and_wait(self.flash_algo['pc_erase_sector'], address,
+                        timeout=self.target.session.options.get('flash.timeout.erase_sector'))
+                if result: break
+                address += self.get_sector_info(address).size
 
         # check the return code
         TRACE.debug("erase_sector result = %d", result)

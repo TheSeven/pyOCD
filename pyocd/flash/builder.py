@@ -796,7 +796,6 @@ class FlashBuilder(MemoryBuilder):
     def _sector_erase_program(self, progress_cb=_stub_progress):
         """@brief Program by performing sector erases."""
         actual_sector_erase_count = 0
-        actual_sector_erase_weight = 0
         progress = 0
 
         progress_cb(0.0)
@@ -805,35 +804,42 @@ class FlashBuilder(MemoryBuilder):
         # to read from flash while simultaneously programming it.
         progress = self._scan_pages_for_same(progress_cb)
 
+        erase_list = []
+        program_list = []
         for sector in self.sector_list:
             if sector.are_any_pages_not_same():
-                # Erase the sector
-                self.flash.init(self.flash.Operation.ERASE)
-                self.flash.erase_sector(sector.addr)
-                self.flash.uninit()
+                if len(erase_list) and erase_list[-1][1] == sector.addr:
+                    erase_list[-1] = (erase_list[-1][0], erase_list[-1][1] + sector.size, erase_list[-1][2] + sector.erase_weight)
+                else: erase_list.append((sector.addr, sector.addr + sector.size, sector.erase_weight))
+                program_list.extend(sector.page_list)
 
-                actual_sector_erase_weight += sector.erase_weight
+        if len(erase_list):
+            self.flash.init(self.flash.Operation.ERASE)
+
+            for addr, end, weight in erase_list:
+                # Erase the sector
+                self.flash.erase_sector(addr, end - addr)
 
                 # Update progress
+                progress += weight
                 if self.sector_erase_weight > 0:
                     progress_cb(float(progress) / float(self.sector_erase_weight))
 
-                # The sector was erased, so we must program all pages in the sector
-                # regardless of whether they were the same or not.
-                for page in sector.page_list:
+            self.flash.uninit()
 
-                    progress += page.get_program_weight()
+        if len(program_list):
+            self.flash.init(self.flash.Operation.PROGRAM)
+            
+            for page in program_list:
+                self.flash.program_page(page.addr, page.data)
 
-                    self.flash.init(self.flash.Operation.PROGRAM)
-                    self.flash.program_page(page.addr, page.data)
-                    self.flash.uninit()
+                # Update progress
+                progress += page.get_program_weight()
+                actual_sector_erase_count += 1
+                if self.sector_erase_weight > 0:
+                    progress_cb(float(progress) / float(self.sector_erase_weight))
 
-                    actual_sector_erase_count += 1
-                    actual_sector_erase_weight += page.get_program_weight()
-
-                    # Update progress
-                    if self.sector_erase_weight > 0:
-                        progress_cb(float(progress) / float(self.sector_erase_weight))
+            self.flash.uninit()
 
         progress_cb(1.0)
 
@@ -908,17 +914,26 @@ class FlashBuilder(MemoryBuilder):
         progress = self._scan_pages_for_same(progress_cb)
 
         # Erase all sectors up front.
-        self.flash.init(self.flash.Operation.ERASE)
+        erase_list = []
         for sector in self.sector_list:
             if sector.are_any_pages_not_same():
+                if len(erase_list) and erase_list[-1][1] == sector.addr:
+                    erase_list[-1] = (erase_list[-1][0], erase_list[-1][1] + sector.size, erase_list[-1][2] + sector.erase_weight)
+                else: erase_list.append((sector.addr, sector.addr + sector.size, sector.erase_weight))
+
+        if len(erase_list):
+            self.flash.init(self.flash.Operation.ERASE)
+
+            for addr, end, weight in erase_list:
                 # Erase the sector
-                self.flash.erase_sector(sector.addr)
+                self.flash.erase_sector(addr, end - addr)
 
                 # Update progress
-                progress += sector.erase_weight
+                progress += weight
                 if self.sector_erase_weight > 0:
                     progress_cb(float(progress) / float(self.sector_erase_weight))
-        self.flash.uninit()
+
+            self.flash.uninit()
 
         # Set up page and buffer info.
         current_buf = 0

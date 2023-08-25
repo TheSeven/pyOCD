@@ -107,10 +107,17 @@ class FlashEraser(object):
     def _sector_erase(self, addresses):
         flash = None
         currentRegion = None
+        
+        # Convert the specs into sorted start and end addresses.
+        addresses = sorted([self._convert_spec(s) for s in addresses], key=lambda a: a[0])
+        
+        # Merge adjacent address ranges
+        merged = []
+        for start, end in addresses:
+            if len(merged) and merged[-1][1] == start: merged[-1] = (merged[-1][0], end)
+            else: merged.append((start, end))
 
-        for spec in addresses:
-            # Convert the spec into a start and end address.
-            sector_addr, end_addr = self._convert_spec(spec)
+        for sector_addr, end_addr in merged:
 
             while sector_addr < end_addr:
                 # Look up the flash memory region for the current address.
@@ -133,6 +140,9 @@ class FlashEraser(object):
                     flash.init(flash.Operation.ERASE)
 
                 assert flash is not None
+                
+                # Trim access to region bounds
+                end = min(end_addr, region.end)
 
                 # Get sector info for the current address.
                 sector_info = flash.get_sector_info(sector_addr)
@@ -145,11 +155,12 @@ class FlashEraser(object):
                     LOG.warning("sector address 0x%08x is unaligned", sector_addr)
                     sector_addr -= delta
 
-                # Erase this page.
-                LOG.info("Erasing sector 0x%08x (%d bytes)", sector_addr, sector_info.size)
-                flash.erase_sector(sector_addr)
+                # Erase this range.
+                size = (end - sector_addr + sector_info.size - 1) & ~(sector_info.size - 1)
+                LOG.info("Erasing sector 0x%08x (%d bytes)", sector_addr, size)
+                flash.erase_sector(sector_addr, size)
 
-                sector_addr += sector_info.size
+                sector_addr += size
 
         if flash is not None:
             flash.cleanup()
@@ -168,13 +179,13 @@ class FlashEraser(object):
                 end_addr = page_addr + length
             else:
                 page_addr = int(spec, base=0)
-                end_addr = page_addr + 1
+                end_addr = page_addr + self._session.target.memory_map.get_region_for_address(page_addr).flash.get_sector_info(page_addr).size
         elif isinstance(spec, tuple):
             page_addr = spec[0]
             end_addr = spec[1]
         else:
             page_addr = spec
-            end_addr = page_addr + 1
+            end_addr = page_addr + self._session.target.memory_map.get_region_for_address(page_addr).flash.get_sector_info(page_addr).size
         return page_addr, end_addr
 
 
