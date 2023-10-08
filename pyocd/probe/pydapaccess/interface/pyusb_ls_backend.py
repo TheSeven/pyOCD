@@ -128,6 +128,8 @@ class PyUSBLS(Interface):
         self.depth -= 1
         if not self.depth: time.sleep(0.0001)
         data = self.dev.ctrl_transfer(0xa1, 0x01, 0x100, self.intf_number, 64, timeout=self.DEFAULT_USB_TIMEOUT_MS)
+        if TRACE.isEnabledFor(logging.DEBUG):
+            TRACE.debug("  USB IN < (%d) %s", len(data), ' '.join([f'{i:02x}' for i in data]))
         return data
 
     def close(self):
