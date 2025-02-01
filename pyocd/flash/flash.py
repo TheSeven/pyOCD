@@ -658,8 +658,10 @@ class Flash:
                         break
                 except exceptions.TransferTimeoutError:
                     LOG.debug("target.get_state probe timeout")
+                    return self.TIMEOUT_ERROR
                 except exceptions.TransferFaultError:
                     LOG.debug("target.get_state probe fault")
+                    raise exceptions.FlashFailure("SWD transfer failed")
             else:
                 # Operation timed out.
                 self.target.halt()
