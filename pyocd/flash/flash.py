@@ -577,6 +577,9 @@ class Flash:
         if init:
             reg_list.append('sp')
             data_list.append(self.begin_stack)
+        if init:
+            reg_list.append('xpsr')
+            data_list.append((pc & 1) << 24)
         reg_list.append('lr')
         data_list.append(self.flash_algo['load_address'] + 1)
         self.target.write_core_registers_raw(reg_list, data_list)
