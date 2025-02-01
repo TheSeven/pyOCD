@@ -89,7 +89,9 @@ from . import target_lpc4088dm
 from . import target_RTL8195AM
 from . import target_CC3220SF
 from . import target_CC3220SF
+from ..family import target_psoc4
 from ..family import target_psoc6
+from .cypress import target_CY8C4xxx
 from .cypress import target_CY8C6xxA
 from .cypress import target_CY8C6xx7
 from .cypress import target_CY8C6xx5
@@ -222,6 +224,7 @@ BUILTIN_TARGETS = {
           'lpc4088dm': target_lpc4088dm.LPC4088dm,
           'rtl8195am': target_RTL8195AM.RTL8195AM,
           'cc3220sf': target_CC3220SF.CC3220SF,
+          'cy8c4xxx': target_CY8C4xxx.CY8C4xxx,
           'cy8c6xxa': target_CY8C6xxA.CY8C6xxA,
           'cy8c6xx7': target_CY8C6xx7.CY8C6xx7,
           'cy8c6xx7_s25fs512s': target_CY8C6xx7.CY8C6xx7_S25FS512S,
