@@ -127,6 +127,7 @@ from . import target_ytm32b1le0
 from . import target_ytm32b1me0
 from . import target_ytm32b1md1
 from . import target_PY32F003x6
+from . import target_PY32F07xxB
 
 ## @brief Dictionary of all builtin targets.
 #
@@ -291,4 +292,5 @@ BUILTIN_TARGETS = {
           'ytm32b1me0': target_ytm32b1me0.YTM32B1ME0,
           'ytm32b1md1': target_ytm32b1md1.YTM32B1MD1,
           'py32f003x6': target_PY32F003x6.PY32F003x6,
+          'py32f07xxb': target_PY32F07xxB.PY32F07xxB,
          }
