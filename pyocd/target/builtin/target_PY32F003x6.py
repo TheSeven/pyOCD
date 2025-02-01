@@ -20,22 +20,16 @@ from ...coresight.coresight_target import CoreSightTarget
 from ...core.memory_map import (FlashRegion, RamRegion, MemoryMap)
 from ...debug.svd.loader import SVDFile
 
-#DBGMCU clock
-RCC_APB2ENR_CR = 0x40021018
-RCC_APB2ENR_DBGMCU = 0x00400000
+RCC_APBENR1 = 0x4002103c
+RCC_APBENR1_DBGMCU = 0x08000000
 
 DBGMCU_CR = 0x40015804
-DBGMCU_APB1_CR = 0x40015808
-DBGMCU_APB2_CR = 0x4001580C
+DBG_APB_FZ1 = 0x40015808
+DBG_APB_FZ2 = 0x4001580c
 
-#0000 0000 0000 0000 0000 0000 0000 0100
-#BGMCU_CR_VAL = 0x00000000
-
-#0000 0010 0010 0000 0001 1101 0011 0011
-DBGMCU_APB1_VAL = 0x02201D33
-
-#0000 0000 0000 0111 0000 1000 0000 0000
-DBGMCU_APB2_VAL = 0x00070800
+DBGMCU_CR_VAL = 0x00000002
+DBGMCU_APB1_VAL = 0xffffffff
+DBGMCU_APB2_VAL = 0xffffffff
 
 
 FLASH_ALGO = {
@@ -121,8 +115,7 @@ class PY32F003x6(CoreSightTarget):
         self._svd_location = SVDFile.from_builtin("py32f003xx.svd")
 
     def post_connect_hook(self):
-        enclock = self.read_memory(RCC_APB2ENR_CR)
-        enclock |= RCC_APB2ENR_DBGMCU
-        self.write_memory(RCC_APB2ENR_CR, enclock)
-        self.write_memory(DBGMCU_APB1_CR, DBGMCU_APB1_VAL)
-        self.write_memory(DBGMCU_APB2_CR, DBGMCU_APB2_VAL)
+        self.write_memory(RCC_APBENR1, self.read_memory(RCC_APBENR1) | RCC_APBENR1_DBGMCU)
+        self.write_memory(DBGMCU_CR, DBGMCU_CR_VAL)
+        self.write_memory(DBG_APB_FZ1, DBG_APB_FZ1_VAL)
+        self.write_memory(DBG_APB_FZ2, DBG_APB_FZ2_VAL)
